@@ -65,9 +65,11 @@ export class VAxios {
    */
   private setupInterceptors() {
     const transform = this.getTransform();
+
     if (!transform) {
       return;
     }
+    
     const {
       requestInterceptors,
       requestInterceptorsCatch,
@@ -80,39 +82,45 @@ export class VAxios {
     // Request interceptor configuration processing
     this.axiosInstance.interceptors.request.use((config: AxiosRequestConfig) => {
       // If cancel repeat request is turned on, then cancel repeat request is prohibited
-      // @ts-ignore
-      const { ignoreCancelToken } = config.requestOptions;
+      // 如果开启了取消重复请求，则禁止取消重复请求
+      const { ignoreCancelToken } = config.requestOptions; // 忽略重复请求
       const ignoreCancel =
         ignoreCancelToken !== undefined
           ? ignoreCancelToken
           : this.options.requestOptions?.ignoreCancelToken;
 
       !ignoreCancel && axiosCanceler.addPending(config);
+
       if (requestInterceptors && isFunction(requestInterceptors)) {
         config = requestInterceptors(config, this.options);
       }
+
       return config;
     }, undefined);
 
     // Request interceptor error capture
+    // 请求拦截器错误捕获
     requestInterceptorsCatch &&
       isFunction(requestInterceptorsCatch) &&
       this.axiosInstance.interceptors.request.use(undefined, requestInterceptorsCatch);
 
     // Response result interceptor processing
+    // 响应结果拦截器处理
     this.axiosInstance.interceptors.response.use((res: AxiosResponse<any>) => {
       res && axiosCanceler.removePending(res.config);
+
       if (responseInterceptors && isFunction(responseInterceptors)) {
         res = responseInterceptors(res);
       }
+
       return res;
     }, undefined);
 
     // Response result interceptor error capture
+    // 响应结果拦截器错误捕获
     responseInterceptorsCatch &&
       isFunction(responseInterceptorsCatch) &&
       this.axiosInstance.interceptors.response.use(undefined, (error) => {
-        // @ts-ignore
         responseInterceptorsCatch(this.axiosInstance, error);
       });
   }
@@ -200,9 +208,11 @@ export class VAxios {
     const opt: RequestOptions = Object.assign({}, requestOptions, options);
 
     const { beforeRequestHook, requestCatchHook, transformRequestHook } = transform || {};
+
     if (beforeRequestHook && isFunction(beforeRequestHook)) {
       conf = beforeRequestHook(conf, opt);
     }
+
     conf.requestOptions = opt;
 
     conf = this.supportFormData(conf);
@@ -218,6 +228,7 @@ export class VAxios {
             } catch (err) {
               reject(err || new Error('request error!'));
             }
+
             return;
           }
           resolve(res as unknown as Promise<T>);
@@ -227,9 +238,11 @@ export class VAxios {
             reject(requestCatchHook(e, opt));
             return;
           }
+
           if (axios.isAxiosError(e)) {
             // rewrite error message from axios in here
           }
+          
           reject(e);
         });
     });

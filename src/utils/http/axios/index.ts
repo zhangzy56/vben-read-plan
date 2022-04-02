@@ -23,6 +23,8 @@ const globSetting = useGlobSetting();
 const urlPrefix = globSetting.urlPrefix;
 const { createMessage, createErrorModal } = useMessage();
 
+// 这里导出的是一个对象 -> 供Axios.ts调用
+
 /**
  * @description: 数据处理，方便区分多种处理方式
  */
@@ -33,23 +35,26 @@ const transform: AxiosTransform = {
   transformRequestHook: (res: AxiosResponse<Result>, options: RequestOptions) => {
     const { t } = useI18n();
     const { isTransformResponse, isReturnNativeResponse } = options;
+
     // 是否返回原生响应头 比如：需要获取响应头时使用该属性
     if (isReturnNativeResponse) {
       return res;
     }
+
     // 不进行任何处理，直接返回
     // 用于页面代码可能需要直接获取code，data，message这些信息时开启
     if (!isTransformResponse) {
       return res.data;
     }
-    // 错误的时候返回
 
+    // 错误的时候返回
     const { data } = res;
     if (!data) {
       // return '[HTTP] Request has no return value';
       throw new Error(t('sys.api.apiRequestFailed'));
     }
-    //  这里 code，result，message为 后台统一的字段，需要在 types.ts内修改为项目自己的接口返回格式
+
+    //  这里 code，result，message 为 后台统一的字段，需要在 types.ts 内修改为项目自己的接口返回格式
     const { code, result, message } = data;
 
     // 这里逻辑可以根据项目进行修改
@@ -62,12 +67,15 @@ const transform: AxiosTransform = {
     // 如果不希望中断当前请求，请return数据，否则直接抛出异常即可
     let timeoutMsg = '';
     switch (code) {
-      case ResultEnum.TIMEOUT:
+      case ResultEnum.TIMEOUT: // 401
         timeoutMsg = t('sys.api.timeoutMessage');
+
         const userStore = useUserStoreWithOut();
+
         userStore.setToken(undefined);
         userStore.logout(true);
         break;
+
       default:
         if (message) {
           timeoutMsg = message;
@@ -88,11 +96,13 @@ const transform: AxiosTransform = {
   // 请求之前处理config
   beforeRequestHook: (config, options) => {
     const { apiUrl, joinPrefix, joinParamsToUrl, formatDate, joinTime = true, urlPrefix } = options;
-
+    
+    // 添加前缀
     if (joinPrefix) {
       config.url = `${urlPrefix}${config.url}`;
     }
 
+    // 个别私人前缀 ?
     if (apiUrl && isString(apiUrl)) {
       config.url = `${apiUrl}${config.url}`;
     }
@@ -104,6 +114,7 @@ const transform: AxiosTransform = {
     formatDate && data && !isString(data) && formatRequestDate(data);
 
     if (config.method?.toUpperCase() === RequestEnum.GET) {
+      // GET 请求 参数设置
       if (!isString(params)) {
         // 给 get 请求加上时间戳参数，避免从缓存中拿数据。
         config.params = Object.assign(params || {}, joinTimestamp(joinTime, false));
@@ -113,8 +124,12 @@ const transform: AxiosTransform = {
         config.params = undefined;
       }
     } else {
+      // POST... 请求 参数设置
       if (!isString(params)) {
         formatDate && formatRequestDate(params);
+
+        // `data` 是作为请求体被发送的数据
+        // 仅适用 'PUT', 'POST', 'DELETE 和 'PATCH' 请求方法
 
         if (Reflect.has(config, 'data') && config.data && Object.keys(config.data).length > 0) {
           config.data = data;
@@ -125,6 +140,7 @@ const transform: AxiosTransform = {
           config.params = undefined;
         }
         
+        // post请求的时候添加参数到url
         if (joinParamsToUrl) {
           config.url = setObjToUrlParams(
             config.url as string,
@@ -137,6 +153,7 @@ const transform: AxiosTransform = {
         config.params = undefined;
       }
     }
+
     return config;
   },
 
@@ -282,3 +299,4 @@ export const defHttp = createAxios();
 //     urlPrefix: 'xxx',
 //   },
 // });
+

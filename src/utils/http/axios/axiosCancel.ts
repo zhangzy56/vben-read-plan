@@ -14,7 +14,9 @@ export class AxiosCanceler {
    */
   addPending(config: AxiosRequestConfig) {
     this.removePending(config);
+
     const url = getPendingUrl(config);
+    
     config.cancelToken =
       config.cancelToken ||
       new axios.CancelToken((cancel) => {
@@ -45,6 +47,9 @@ export class AxiosCanceler {
     if (pendingMap.has(url)) {
       // If there is a current request identifier in pending,
       // the current request needs to be cancelled and removed
+
+      // 如果在pending中有当前请求标识符 -> 当前的请求需要被取消和删除
+
       const cancel = pendingMap.get(url);
       cancel && cancel(url);
       pendingMap.delete(url);
