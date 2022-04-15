@@ -73,6 +73,7 @@ export function transformObjToRoute<T = AppRouteModule>(routeList: AppRouteModul
     const component = route.component as string;
     if (component) {
       if (component.toUpperCase() === 'LAYOUT') {
+        // 动态Import组件
         route.component = LayoutMap.get(component.toUpperCase());
       } else {
         route.children = [cloneDeep(route)];

@@ -35,6 +35,7 @@ interface PermissionState {
   backMenuList: Menu[];
   frontMenuList: Menu[];
 }
+
 export const usePermissionStore = defineStore({
   id: 'app-permission',
   state: (): PermissionState => ({
@@ -103,6 +104,8 @@ export const usePermissionStore = defineStore({
 
       let routes: AppRouteRecordRaw[] = [];
       const roleList = toRaw(userStore.getRoleList) || [];
+
+      // 三种权限模式之一
       const { permissionMode = projectSetting.permissionMode } = appStore.getProjectConfig;
 
       const routeFilter = (route: AppRouteRecordRaw) => {
@@ -111,9 +114,10 @@ export const usePermissionStore = defineStore({
         if (!roles) return true;
         return roleList.some((role) => roles.includes(role));
       };
-
+      
       const routeRemoveIgnoreFilter = (route: AppRouteRecordRaw) => {
         const { meta } = route;
+        // ignoreRoute: 忽略路由。用于在ROUTE_MAPPING以及BACK权限模式下，生成对应的菜单而忽略路由。2.5.3以上版本有效
         const { ignoreRoute } = meta || {};
         return !ignoreRoute;
       };
@@ -123,12 +127,17 @@ export const usePermissionStore = defineStore({
        * */
       const patchHomeAffix = (routes: AppRouteRecordRaw[]) => {
         if (!routes || routes.length === 0) return;
+
         let homePath: string = userStore.getUserInfo.homePath || PageEnum.BASE_HOME;
+
         function patcher(routes: AppRouteRecordRaw[], parentPath = '') {
           if (parentPath) parentPath = parentPath + '/';
+
           routes.forEach((route: AppRouteRecordRaw) => {
             const { path, children, redirect } = route;
+
             const currentPath = path.startsWith('/') ? path : parentPath + path;
+
             if (currentPath === homePath) {
               if (redirect) {
                 homePath = route.redirect! as string;
@@ -137,6 +146,7 @@ export const usePermissionStore = defineStore({
                 throw new Error('end');
               }
             }
+
             children && children.length > 0 && patcher(children, currentPath);
           });
         }
@@ -159,16 +169,21 @@ export const usePermissionStore = defineStore({
         case PermissionModeEnum.ROUTE_MAPPING:
           routes = filter(asyncRoutes, routeFilter);
           routes = routes.filter(routeFilter);
+
           const menuList = transformRouteToMenu(routes, true);
+
           routes = filter(routes, routeRemoveIgnoreFilter);
           routes = routes.filter(routeRemoveIgnoreFilter);
+
           menuList.sort((a, b) => {
             return (a.meta?.orderNo || 0) - (b.meta?.orderNo || 0);
           });
 
           this.setFrontMenuList(menuList);
+
           // Convert multi-level routing to level 2 routing
           routes = flatMultiLevelRoutes(routes);
+
           break;
 
         //  If you are sure that you do not need to do background dynamic permissions, please comment the entire judgment below
@@ -193,8 +208,9 @@ export const usePermissionStore = defineStore({
           // Dynamically introduce components
           routeList = transformObjToRoute(routeList);
 
-          //  Background routing to menu structure
+          // Background routing to menu structure
           const backMenuList = transformRouteToMenu(routeList);
+
           this.setBackMenuList(backMenuList);
 
           // remove meta.ignoreRoute item
@@ -207,7 +223,9 @@ export const usePermissionStore = defineStore({
       }
 
       routes.push(ERROR_LOG_ROUTE);
+
       patchHomeAffix(routes);
+      
       return routes;
     },
   },

@@ -126,7 +126,9 @@ export function filter<T = any>(
   config: Partial<TreeHelperConfig> = {},
 ): T[] {
   config = getConfig(config);
+
   const children = config.children as string;
+  
   function listFilter(list: T[]) {
     return list
       .map((node: any) => ({ ...node }))
@@ -135,6 +137,7 @@ export function filter<T = any>(
         return func(node) || (node[children] && node[children].length);
       });
   }
+  
   return listFilter(tree);
 }
 

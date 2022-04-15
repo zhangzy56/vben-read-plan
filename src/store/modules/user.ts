@@ -95,6 +95,7 @@ export const useUserStore = defineStore({
 
         // save token
         this.setToken(token);
+        
         return this.afterLoginAction(goHome);
       } catch (error) {
         return Promise.reject(error);
@@ -102,30 +103,44 @@ export const useUserStore = defineStore({
     },
     async afterLoginAction(goHome?: boolean): Promise<GetUserInfoModel | null> {
       if (!this.getToken) return null;
-      // get user info
+      
+      // 获取用户信息
       const userInfo = await this.getUserInfoAction();
 
       const sessionTimeout = this.sessionTimeout;
+
       if (sessionTimeout) {
-        this.setSessionTimeout(false);
+        this.setSessionTimeout(false); // 设置未超时
       } else {
         const permissionStore = usePermissionStore();
+        
+        // 是否动态添加过路由
         if (!permissionStore.isDynamicAddedRoute) {
+          // 生成用户的路由表
           const routes = await permissionStore.buildRoutesAction();
+          
           routes.forEach((route) => {
             router.addRoute(route as unknown as RouteRecordRaw);
           });
+
           router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw);
+
           permissionStore.setDynamicAddedRoute(true);
         }
+        
+        // 重定向到用户的默认首页
         goHome && (await router.replace(userInfo?.homePath || PageEnum.BASE_HOME));
       }
+      
       return userInfo;
     },
     async getUserInfoAction(): Promise<UserInfo | null> {
       if (!this.getToken) return null;
+
       const userInfo = await getUserInfo();
+
       const { roles = [] } = userInfo;
+
       if (isArray(roles)) {
         const roleList = roles.map((item) => item.value) as RoleEnum[];
         this.setRoleList(roleList);
@@ -133,7 +148,9 @@ export const useUserStore = defineStore({
         userInfo.roles = [];
         this.setRoleList([]);
       }
+
       this.setUserInfo(userInfo);
+
       return userInfo;
     },
     /**
